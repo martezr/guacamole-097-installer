@@ -1,0 +1,3 @@
+test:
+  override:
+    - ./guacamole-097-install.sh
