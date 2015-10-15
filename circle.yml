@@ -1,4 +1,5 @@
 test:
   override:
+    - chmod +x guacamole-097-installer.sh
     - ls -al
-    - ./guacamole-097-install.sh
+    - ./guacamole-097-installer.sh
