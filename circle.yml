@@ -1,3 +1,4 @@
 test:
   override:
+    - ls -al
     - ./guacamole-097-install.sh
