@@ -19,6 +19,8 @@ ssl_state=IL
 ssl_city=Chicago
 ssl_org=IT
 ssl_certname=guacamole.company.local
+ssl_validity=365
+ssl_keylength=2048
  
 #System Update
 sudo apt-get update -y
@@ -166,7 +168,7 @@ sudo apt-get install -y nginx
 sudo mkdir /etc/nginx/ssl
  
 # Create self-signed certificate
-sudo openssl req -x509 -subj '/C=US/ST=IL/L=Chicago/O=IT/CN=$hostname' -nodes -days 365 -newkey rsa:2048 -keyout /etc/nginx/ssl/nginx.key -out /etc/nginx/ssl/nginx.crt -extensions v3_ca
+sudo openssl req -x509 -subj '/C=US/ST=IL/L=Chicago/O=IT/CN=$hostname' -nodes -days $ssl_validity -newkey rsa:$ssl_keylength -keyout /etc/nginx/ssl/nginx.key -out /etc/nginx/ssl/nginx.crt -extensions v3_ca
  
 # Add proxy settings to nginx config file (/etc/nginx/sites-enabled/default)
 # Borrowed configuration from Eric Oud Ammerveled (http://sourceforge.net/p/guacamole/discussion/1110834/thread/6961d682/#aca9)
@@ -206,13 +208,13 @@ server {
     proxy_redirect  off;
 # Enabling websockets using the first 3 lines; Check /var/log/tomcat8/catalina.out while testing; guacamole will show you a fallback message if websockets fail to work.
     proxy_http_version 1.1;
-    proxy_set_header Upgrade '$http_upgrade';
+    proxy_set_header Upgrade \$http_upgrade;
     proxy_set_header Connection "upgrade";
 # Just something that was advised by someone from the dev team; worked fine without it too.
     proxy_cookie_path /guacamole/ /;
     location / {
             # I am running the Tomcat7 and Guacamole on the local server
-            proxy_pass http://localhost:8080/guacamole;
+            proxy_pass http://localhost:8080/guacamole/;
             break;
     }
 }
