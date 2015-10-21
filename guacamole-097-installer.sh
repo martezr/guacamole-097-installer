@@ -30,7 +30,7 @@ sudo apt-get upgrade -y
 sudo apt-get install -y tomcat7
  
 # Install Packages
-sudo apt-get install -y make libcairo2-dev libjpeg62-turbo-dev libpng12-dev libossp-uuid-dev libpango-1.0-0 libpango1.0-dev libssh2-1-dev libpng12-dev freerdp-x11 libssh2-1 libvncserver-dev libfreerdp-dev libvorbis-dev libssl1.0.0 gcc libssh-dev libpulse-dev tomcat7-admin tomcat7-docs libtelnet-dev libossp-uuid-dev
+sudo apt-get install -y make libcairo2-dev libjpeg8-turbo-dev libpng12-dev libossp-uuid-dev libpango-1.0-0 libpango1.0-dev libssh2-1-dev libpng12-dev freerdp-x11 libssh2-1 libvncserver-dev libfreerdp-dev libvorbis-dev libssl1.0.0 gcc libssh-dev libpulse-dev tomcat7-admin tomcat7-docs libtelnet-dev libossp-uuid-dev
  
 #Download Guacamole Client
 sudo wget http://sourceforge.net/projects/guacamole/files/current/binary/guacamole-$guac_version.war
@@ -175,7 +175,7 @@ sudo cat << EOF3 > /etc/nginx/sites-enabled/default
 # ANOTHER SERVER LISTENING ON PORT 443 (SSL) to secure the Guacamole traffic and proxy the requests to Tomcat7
 server {
     listen 443 ssl;
-    server_name     $hostname;
+    server_name     $ssl_certname;
 # This part is for SSL config only
     ssl on;
     ssl_certificate      /etc/nginx/ssl/nginx.crt;
@@ -206,13 +206,13 @@ server {
     proxy_redirect  off;
 # Enabling websockets using the first 3 lines; Check /var/log/tomcat8/catalina.out while testing; guacamole will show you a fallback message if websockets fail to work.
     proxy_http_version 1.1;
-    proxy_set_header Upgrade $http_upgrade;
+    proxy_set_header Upgrade '$http_upgrade';
     proxy_set_header Connection "upgrade";
 # Just something that was advised by someone from the dev team; worked fine without it too.
     proxy_cookie_path /guacamole/ /;
     location / {
             # I am running the Tomcat7 and Guacamole on the local server
-            proxy_pass http://localhost:8080;
+            proxy_pass http://localhost:8080/guacamole;
             break;
     }
 }
