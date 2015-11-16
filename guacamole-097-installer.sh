@@ -81,14 +81,12 @@ sudo ldconfig
 cd ..
 
 #Download Guacamole Client
-sudo wget http://sourceforge.net/projects/guacamole/files/current/binary/guacamole-$guac_version.war
+sudo wget http://sourceforge.net/projects/guacamole/files/current/binary/guacamole-$guac_version.war -O guacamole.war
 
-
- 
 # Copy the guacamole war file to the Tomcat 7 webapps directory
-sudo cp guacamole-$guac_version.war /var/lib/tomcat/webapps/guacamole.war 
-rm -rf /usr/lib64/freerdp/guacdr.so
-ln -s /usr/local/lib/freerdp/guacdr.so /usr/lib64/freerdp/
+sudo ln -s /var/lib/guacamole/guacamole.war /var/lib/tomcat/webapps/
+sudo rm -rf /usr/lib64/freerdp/guacdr.so
+sudo ln -s /usr/local/lib/freerdp/guacdr.so /usr/lib64/freerdp/
 
 ### Guacamole Configuration ###
 
