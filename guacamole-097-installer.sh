@@ -187,60 +187,33 @@ sudo yum install -y nginx
 sudo mkdir /etc/nginx/ssl
  
 # Create self-signed certificate
-sudo openssl req -x509 -subj '/C=US/ST=IL/L=Chicago/O=IT/CN=$hostname' -nodes -days $ssl_validity -newkey rsa:$ssl_keylength -keyout /etc/nginx/ssl/nginx.key -out /etc/nginx/ssl/nginx.crt -extensions v3_ca
+sudo openssl req -x509 -subj '/C=US/ST=IL/L=Chicago/O=IT/CN=$ssl_certname' -nodes -days $ssl_validity -newkey rsa:$ssl_keylength -keyout /etc/nginx/ssl/nginx.key -out /etc/nginx/ssl/nginx.crt -extensions v3_ca
  
 # Add proxy settings to nginx config file (/etc/nginx/sites-enabled/default)
 # Borrowed configuration from Eric Oud Ammerveled (http://sourceforge.net/p/guacamole/discussion/1110834/thread/6961d682/#aca9)
  
-sudo cat << EOF3 > /etc/nginx/sites-enabled/default
-# ANOTHER SERVER LISTENING ON PORT 443 (SSL) to secure the Guacamole traffic and proxy the requests to Tomcat7
-server {
-    listen 443 ssl;
-    server_name     $ssl_certname;
-# This part is for SSL config only
-    ssl on;
-    ssl_certificate      /etc/nginx/ssl/nginx.crt;
-    ssl_certificate_key  /etc/nginx/ssl/nginx.key;
-    ssl_session_cache shared:SSL:10m;
-    ssl_ciphers 'AES256+EECDH:AES256+EDH:!aNULL';
-    ssl_protocols TLSv1 TLSv1.1 TLSv1.2;
-    ssl_stapling on;
-    ssl_stapling_verify on;
-    ssl_prefer_server_ciphers on;
-#    ssl_dhparam /etc/ssl/certs/dhparam.pem;
-# Found below settings to be performing best but it will work with your own
-    tcp_nodelay    on;
-    tcp_nopush     off;
-    sendfile       on;
-    client_body_buffer_size 10K;
-    client_header_buffer_size 1k;
-    client_max_body_size 8m;
-    large_client_header_buffers 2 1k;
-    client_body_timeout 12;
-    client_header_timeout 12;
-    keepalive_timeout 15;
-    send_timeout 10;
-# HINT: You might want to enable access_log during the testing!
-    access_log off;
-# Don't turn ON proxy_buffering!; this will impact the line quality
-    proxy_buffering off;
-    proxy_redirect  off;
-# Enabling websockets using the first 3 lines; Check /var/log/tomcat8/catalina.out while testing; guacamole will show you a fallback message if websockets fail to work.
-    proxy_http_version 1.1;
-    proxy_set_header Upgrade \$http_upgrade;
-    proxy_set_header Connection "upgrade";
-# Just something that was advised by someone from the dev team; worked fine without it too.
-    proxy_cookie_path /guacamole/ /;
-    location / {
-            # I am running the Tomcat7 and Guacamole on the local server
-            proxy_pass http://localhost:8080/guacamole/;
-            break;
-    }
+sudo cat << EOF3 > /etc/nginx/conf.d/reverseproxy.conf
+ssl_certificate /etc/nginx/ssl/nginx.crt;   # Replace with your cert info (I generate my own self-signed certs with openssl)
+ssl_certificate_key  /etc/nginx/ssl/nginx.key;   # Replace with your cert info (I generate my own self-signed certs with openssl)
+#ssl_dhparam  ssl/domain.pem;   # Replace with your cert info (I generate my own self-signed certs with openssl)
+ssl_session_timeout  5m;
+ssl_prefer_server_ciphers  on;
+ssl_protocols  TLSv1 TLSv1.1 TLSv1.2;
+ssl_ciphers  AES256+EECDH:AES256+EDH:!aNULL;
+
+server  {
+  listen  443 ssl;   # Example config for Guacamole, browsable at https://guac.domain.com/guacamole
+  server_name  $ssl_certname;
+  ssl  on;
+  location  / {
+    proxy_buffering  off;
+    proxy_pass  http://localhost:8080/;
+  }
 }
 EOF3
  
 # Restart nginx service
-sudo service nginx restart
+sudo systemctl restart nginx
  
 # Restart tomcat7
 sudo service tomcat restart
@@ -259,3 +232,6 @@ sudo firewall-cmd --permanent --zone=public --add-port=443/tcp
 
 # Allow SSH access
 sudo firewall-cmd --permanent --zone=public --add-port=22/tcp
+
+# Restart server
+systemctl reboot
