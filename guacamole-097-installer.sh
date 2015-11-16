@@ -5,6 +5,8 @@
 ## Green Reed Technology 2015 ##
 ##       Martez Reed          ##
 ################################
+
+## Based upon work done by Derek Horn (https://deviantengineer.com/2015/02/guacamole-centos7/)
  
 ## Define variables
  
@@ -21,31 +23,43 @@ ssl_org=IT
 ssl_certname=guacamole.company.local
 ssl_validity=365
 ssl_keylength=2048
- 
+
+# Ensure wget is installed
+sudo yum -y install wget
+
+# Add additional repositories
+sudo rpm -Uvh http://mirror.metrocast.net/fedora/epel/7/x86_64/e/epel-release-7-5.noarch.rpm 
+sudo wget http://download.opensuse.org/repositories/home:/felfert/Fedora_19/home:felfert.repo && mv home\:felfert.repo /etc/yum.repos.d/ 
+
 #System Update
-sudo apt-get update -y
- 
-#System Upgrade
-sudo apt-get upgrade -y
- 
-#Install Tomcat 7
-sudo apt-get install -y tomcat7
- 
+sudo yum -y update
+
 # Install Packages
-sudo apt-get install -y make libcairo2-dev libjpeg8-turbo-dev libpng12-dev libossp-uuid-dev libpango-1.0-0 libpango1.0-dev libssh2-1-dev libpng12-dev freerdp-x11 libssh2-1 libvncserver-dev libfreerdp-dev libvorbis-dev libssl1.0.0 gcc libssh-dev libpulse-dev tomcat7-admin tomcat7-docs libtelnet-dev libossp-uuid-dev
- 
-#Download Guacamole Client
-sudo wget http://sourceforge.net/projects/guacamole/files/current/binary/guacamole-$guac_version.war
- 
+sudo yum -y install tomcat libvncserver freerdp libvorbis libguac libguac-client-vnc libguac-client-rdp libguac-client-ssh 
+
+sudo yum -y install cairo-devel pango-devel libvorbis-devel openssl-devel gcc pulseaudio-libs-devel libvncserver-devel terminus-fonts freerdp-devel uuid-devel libssh2-devel libtelnet libtelnet-devel tomcat-webapps tomcat-admin-webapps java-1.7.0-openjdk.x86_64
+
+##########################
+### Guacd Installation ###
+##########################
+
+#### Guacd Server Install ####
+
+# Create directory to store installation files
+sudo mkdir /var/lib/guacamole
+
+# Change directory to /var/lib/guacamole
+cd /var/lib/guacamole
+
 #Download Guacamole Server
 sudo wget http://sourceforge.net/projects/guacamole/files/current/source/guacamole-server-$guac_version.tar.gz
- 
+
 # Untar the guacamole server source files
 sudo tar -xzf guacamole-server-$guac_version.tar.gz
- 
+
 # Change directory to the source files
 cd guacamole-server-$guac_version/
- 
+
 #
 sudo ./configure --with-init-dir=/etc/init.d
  
@@ -60,7 +74,24 @@ sudo update-rc.d guacd defaults
  
 #
 sudo ldconfig
+
+#### Guacd Client Install ####
+
+# Move up a directory to copy the guacamole.war file
+cd ..
+
+#Download Guacamole Client
+sudo wget http://sourceforge.net/projects/guacamole/files/current/binary/guacamole-$guac_version.war
+
+
  
+# Copy the guacamole war file to the Tomcat 7 webapps directory
+sudo cp guacamole-$guac_version.war /var/lib/tomcat/webapps/guacamole.war 
+rm -rf /usr/lib64/freerdp/guacdr.so
+ln -s /usr/local/lib/freerdp/guacdr.so /usr/lib64/freerdp/
+
+### Guacamole Configuration ###
+
 # Create guacamole configuration directory
 sudo mkdir /etc/guacamole
  
@@ -87,28 +118,16 @@ mysql-password: $mysql_password
  
 lib-directory: /var/lib/guacamole/classpath
 EOF1
- 
+
 #
-sudo mkdir /usr/share/tomcat7/.guacamole
+sudo mkdir /usr/share/tomcat/.guacamole
  
 # Create a symbolic link of the properties file for Tomcat7
-sudo  ln -s /etc/guacamole/guacamole.properties /usr/share/tomcat7/.guacamole
+sudo ln -s /etc/guacamole/guacamole.properties /usr/share/tomcat/.guacamole/
 
-# Move up a directory to copy the guacamole.war file
-cd ..
- 
-# Copy the guacamole war file to the Tomcat 7 webapps directory
-sudo cp guacamole-$guac_version.war /var/lib/tomcat7/webapps/guacamole.war
- 
-# Start the Guacamole (guacd) service
-sudo service guacd start
- 
-# Restart Tomcat 7
-sudo service tomcat7 restart
- 
-########################################
-# MySQL Installation and configuration #
-########################################
+##########################################
+# MariaDB Installation and configuration #
+##########################################
  
 # Download Guacamole MySQL Authentication Module
 sudo wget http://sourceforge.net/projects/guacamole/files/current/extensions/guacamole-auth-jdbc-$guac_version.tar.gz
@@ -130,14 +149,16 @@ sudo tar -xzf mysql-connector-java-$mysql_version.tar.gz
  
 # Copy the MySQL Connector-J jar file to the guacamole classpath diretory
 sudo cp mysql-connector-java-$mysql_version/mysql-connector-java-$mysql_version-bin.jar /var/lib/guacamole/classpath/
- 
-# Provide mysql root password to automate installation
-sudo debconf-set-selections <<< "mysql-server mysql-server/root_password password $mysql_password"
-sudo debconf-set-selections <<< "mysql-server mysql-server/root_password_again password $mysql_password"
- 
-# Install MySQL
-sudo apt-get install -y mysql-server
- 
+
+# Install mariadb
+sudo yum -y install mariadb mariadb-server
+
+# Start mariadb 
+sudo systemctl start mariadb
+
+# Set root password
+mysqladmin -u root password $mysql_password
+
 # Lay down mysql configuration script
 sudo cat <<EOF2 > guacamolemysql.sql
 #MySQL Guacamole Script
@@ -153,7 +174,7 @@ sudo mysql -u root --password=$mysql_password < guacamolemysql.sql
  
 # Change directory to mysql-auth directory
 cd guacamole-auth-jdbc-$guac_version/mysql
- 
+
 # Run database scripts to create schema and users
 sudo cat schema/*.sql | mysql -u root --password=$mysql_password guacamole
  
@@ -162,7 +183,7 @@ sudo cat schema/*.sql | mysql -u root --password=$mysql_password guacamole
 ##########################################
  
 # Install Nginx
-sudo apt-get install -y nginx
+sudo yum install -y nginx
  
 # Create directory to store server key and certificate
 sudo mkdir /etc/nginx/ssl
@@ -224,33 +245,19 @@ EOF3
 sudo service nginx restart
  
 # Restart tomcat7
-sudo service tomcat7 restart
+sudo service tomcat restart
  
 # Restart guacd
 sudo service guacd restart
- 
+
+systemctl enable tomcat.service && systemctl enable mariadb.service && chkconfig guacd on && systemctl enable nginx
+
 ################################################
 #           Firewall Configuration             #
 ################################################
  
-# Disable Firewall 
-sudo ufw disable
- 
 # Allow HTTPS access
-sudo ufw allow https
+sudo firewall-cmd --permanent --zone=public --add-port=443/tcp
 
 # Allow SSH access
-sudo ufw allow ssh
-
-# Enable Firewall
-sudo ufw enable
- 
-# Disable IPv6
-sudo cat <<EOF3 >> /etc/sysctl.conf
-net.ipv6.conf.all.disable_ipv6 = 1
-net.ipv6.conf.default.disable_ipv6 = 1
-net.ipv6.conf.lo.disable_ipv6 = 1
-EOF3
- 
-# Activate sysctl
-sudo sysctl -p
+sudo firewall-cmd --permanent --zone=public --add-port=22/tcp
