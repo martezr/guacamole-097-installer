@@ -1,5 +1,7 @@
 [![Stories in Ready](https://badge.waffle.io/martezr/guacamole-097-installer.png?label=ready&title=Ready)](https://waffle.io/martezr/guacamole-097-installer)
 # guacamole-097-installer
+
+[![Join the chat at https://gitter.im/martezr/guacamole-097-installer](https://badges.gitter.im/Join%20Chat.svg)](https://gitter.im/martezr/guacamole-097-installer?utm_source=badge&utm_medium=badge&utm_campaign=pr-badge&utm_content=badge)
 Guacamole 0.9.7 HTML Gateway Installer
 
 What is Guacamole?
